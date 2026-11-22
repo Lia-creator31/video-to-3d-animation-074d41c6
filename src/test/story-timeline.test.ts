@@ -67,7 +67,7 @@ describe("3D Garden Story Timeline", () => {
     }
   });
 
-  it("keeps hero butterfly hidden early, enters in Scene 4, and approaches lens in Scene 5", () => {
+  it("keeps hero butterfly hidden early, enters in Scene 4, and stays dancing in the garden through Scene 5 without zooming into the lens", () => {
     expect(evaluateHeroButterflyProgress(4.0).visible).toBe(false);
     const scene4 = evaluateHeroButterflyProgress(14.0);
     expect(scene4.visible).toBe(true);
@@ -75,8 +75,8 @@ describe("3D Garden Story Timeline", () => {
     expect(scene4.approachProgress).toBe(0);
 
     const finale = evaluateHeroButterflyProgress(17.4);
-    expect(finale.approachProgress).toBe(1);
-    expect(finale.hoverProgress).toBeGreaterThan(0);
+    expect(finale.approachProgress).toBe(0);
+    expect(finale.hoverProgress).toBe(0);
   });
 
   it("wraps looped playback timestamps cleanly", () => {

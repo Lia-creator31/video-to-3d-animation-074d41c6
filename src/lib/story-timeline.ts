@@ -143,16 +143,15 @@ export type CameraTimelineState = {
 };
 
 export function evaluateCameraState(t: number, reducedMotion: boolean): CameraTimelineState {
-  // Scene 1: starts warm and grounded with the walking couple, glides back to frame the rose arch
-  const pWalk = smoothRange(t, 0, WALK_END);
-  // Scene 2 -> 3: gently pulls wider while they face each other to reveal all arriving animals
-  const pWide = smoothRange(t, 6.6, 11.2);
-  // Scene 4 -> 5: subtly leans in and tilts slightly upward toward swirling butterflies & finale
-  const pFly = smoothRange(t, 11.6, 16.4);
+  // Scene 1: starts wide and zooms in right from the very first scene as the couple walks forward
+  const pZoomStart = smoothRange(t, 0, WALK_END);
+  // Scene 2 -> 3: gently framing the arriving animals while keeping the zoomed-in feel,
+  // then staying steady through Scene 4 & 5 without any additional zoom at the end
+  const pAnimals = smoothRange(t, 6.6, 11.2);
 
-  const zOffset = lerp(-1.85, -0.15, pWalk) + lerp(0, 1.25, pWide) + lerp(0, -0.9, pFly);
-  const y = lerp(0.12, 0.04, pWalk) + lerp(0, 0.16, pWide) + lerp(0, 0.1, pFly);
-  const lookY = lerp(-0.46, -0.58, pWalk) + lerp(0, -0.12, pWide) + lerp(0, 0.28, pFly);
+  const zOffset = lerp(1.35, -1.25, pZoomStart) + lerp(0, 0.35, pAnimals);
+  const y = lerp(0.18, 0.04, pZoomStart) + lerp(0, 0.1, pAnimals);
+  const lookY = lerp(-0.56, -0.44, pZoomStart) + lerp(0, -0.06, pAnimals);
   const driftX = reducedMotion ? 0 : Math.sin(t * 0.32) * 0.18;
 
   return { zOffset, y, lookY, driftX };
@@ -193,14 +192,12 @@ export function evaluateHeroButterflyProgress(t: number): {
   loopFade: number;
 } {
   const enterProgress = smoothRange(t, 12.6, 14.3);
-  const approachProgress = smoothRange(t, 15.15, 17.1);
-  const hoverProgress = clamp01((t - 17.1) / (STORY_DURATION - 17.1));
   const loopFade = 1 - smoothRange(t, 17.72, STORY_DURATION);
   return {
     visible: t >= 12.5,
     enterProgress,
-    approachProgress,
-    hoverProgress,
+    approachProgress: 0,
+    hoverProgress: 0,
     loopFade,
   };
 }
