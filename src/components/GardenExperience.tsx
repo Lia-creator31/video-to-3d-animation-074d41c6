@@ -46,29 +46,12 @@ export function GardenExperience() {
     };
   }, []);
 
-  const activeScene = STORY_SCENES[playback.sceneIndex] ?? STORY_SCENES[0]!;
   const progressPct = Math.min(100, Math.max(0, (playback.time / playback.duration) * 100));
 
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-background text-foreground">
       <div ref={mountRef} className="absolute inset-0" aria-label="Animasi 3D taman mawar" role="img" />
       <div className="garden-vignette pointer-events-none absolute inset-0" />
-
-      <header
-        className={`pointer-events-none absolute left-0 top-0 p-5 sm:p-9 transition-all duration-[1200ms] ${
-          ready ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0"
-        }`}
-      >
-        <p className="font-sans text-xs uppercase tracking-[0.32em] text-accent text-glow">
-          Animasi 3D · Adegan {activeScene.id + 1} dari {STORY_SCENES.length}
-        </p>
-        <h1 className="mt-2 max-w-md font-display text-4xl italic leading-[0.95] text-foreground text-glow sm:text-6xl">
-          Di Bawah Lengkungan Mawar
-        </h1>
-        <p className="mt-2 max-w-md font-sans text-sm text-muted-foreground text-glow">
-          {activeScene.caption}
-        </p>
-      </header>
 
       <section
         aria-label="Kontrol adegan animasi 3D"
@@ -151,9 +134,11 @@ export function GardenExperience() {
         }`}
       >
         <div className="loader-petal" />
-        <p className="font-display text-2xl italic text-muted-foreground">
-          {failed ? "Animasi 3D tidak dapat dimuat di perangkat ini." : "Menyiapkan taman 3D…"}
-        </p>
+        {failed ? (
+          <p className="font-display text-2xl italic text-muted-foreground">
+            Animasi 3D tidak dapat dimuat di perangkat ini.
+          </p>
+        ) : null}
       </div>
     </main>
   );
