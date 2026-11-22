@@ -50,7 +50,8 @@ export function canvasTexture(size: number, draw: (ctx: CanvasRenderingContext2D
 export function createProceduralTextures() {
   const shadow = canvasTexture(128, (ctx, s) => {
     const g = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
-    g.addColorStop(0, "rgba(20,25,10,0.52)");
+    g.addColorStop(0, "rgba(18,24,10,0.62)");
+    g.addColorStop(0.55, "rgba(18,24,10,0.28)");
     g.addColorStop(1, "rgba(20,25,10,0)");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, s, s);
@@ -145,11 +146,11 @@ export function createCutoutCard(
       depthWrite: false,
     });
     const sh = new THREE.Mesh(
-      new THREE.PlaneGeometry(height * aspect * shadowScale, height * 0.34),
+      new THREE.PlaneGeometry(height * aspect * shadowScale, height * 0.38),
       shadowMaterial,
     );
     sh.rotation.x = -Math.PI / 2;
-    sh.position.y = 0.01;
+    sh.position.y = 0.015;
     sh.renderOrder = -1;
     holder.add(sh);
     return { holder, mesh, material, shadowMaterial };

@@ -102,7 +102,7 @@ export function createGardenScene(container: HTMLElement, opts: GardenOptions = 
     new THREE.PlaneGeometry(1, 1),
     new THREE.MeshBasicMaterial({ map: tex.bg, toneMapped: false, depthWrite: false }),
   );
-  bg.position.set(0, -0.7, BG_Z);
+  bg.position.set(0, -0.58, BG_Z);
   bg.renderOrder = -10;
   scene.add(bg);
 
@@ -131,34 +131,35 @@ export function createGardenScene(container: HTMLElement, opts: GardenOptions = 
     scene.add(m);
   });
 
-  // Scene 1 -> 2 actors: empty wooden bench, walking couple, and seated couple on bench
-  const emptyBench = createCutoutCard(tex.woodenBench, proc.shadow, ASPECT.woodenBench, 2.55, 0.85);
-  emptyBench.holder.position.set(0, GROUND, -0.08);
+  // Scene 1 -> 2 actors: empty wooden bench aligned pixel-for-pixel with couple-bench
+  const emptyBench = createCutoutCard(tex.woodenBench, proc.shadow, ASPECT.woodenBench, 2.22, 0.9);
+  emptyBench.mesh.scale.x = 1.21;
+  emptyBench.holder.position.set(0, GROUND + 0.14, -0.06);
   scene.add(emptyBench.holder);
 
-  const walkingCouple = createCutoutCard(tex.coupleWalking, proc.shadow, ASPECT.coupleWalking, 3.52, 0.78);
-  walkingCouple.holder.position.set(0, GROUND, -3.8);
+  const walkingCouple = createCutoutCard(tex.coupleWalking, proc.shadow, ASPECT.coupleWalking, 3.54, 0.86);
+  walkingCouple.holder.position.set(0, GROUND, -2.9);
   scene.add(walkingCouple.holder);
 
-  const seatedCouple = createCutoutCard(tex.coupleBench, proc.shadow, ASPECT.coupleBench, 3.3, 0.85);
+  const seatedCouple = createCutoutCard(tex.coupleBench, proc.shadow, ASPECT.coupleBench, 3.3, 0.92);
   seatedCouple.holder.position.set(0, GROUND, 0);
   scene.add(seatedCouple.holder);
 
-  // Layered rose bushes along the garden path & foreground
+  // Grounded rose bushes firmly rooted into the garden lawn (no floating edges)
   const bushes: { holder: THREE.Group; phase: number }[] = [];
-  const addBush = (x: number, y: number, z: number, h: number, mirror = false) => {
-    const c = createCutoutCard(tex.bush, proc.shadow, ASPECT.bush, h, 0);
+  const addBush = (x: number, y: number, z: number, h: number, mirror = false, shadow = 0.95) => {
+    const c = createCutoutCard(tex.bush, proc.shadow, ASPECT.bush, h, shadow);
     c.holder.position.set(x, y, z);
     if (mirror) c.mesh.scale.x = -1;
     scene.add(c.holder);
     bushes.push({ holder: c.holder, phase: Math.random() * 6 });
   };
-  addBush(-5.3, GROUND - 0.25, -4.1, 1.75);
-  addBush(5.4, GROUND - 0.25, -3.8, 1.65, true);
-  addBush(-5.9, GROUND - 0.35, -1.2, 1.55);
-  addBush(6.0, GROUND - 0.35, -1.0, 1.5, true);
-  addBush(-4.7, GROUND - 1.2, 3.3, 1.55);
-  addBush(4.9, GROUND - 1.25, 3.5, 1.6, true);
+  // Side garden bushes rooted deeply below the lawn line behind the fawns (zero floating bottom edges)
+  addBush(-5.55, GROUND - 1.08, -2.05, 2.05, false, 1.05);
+  addBush(5.65, GROUND - 1.08, -2.05, 2.05, true, 1.05);
+  // Outer foreground corner bushes anchored below the frame bottom edge
+  addBush(-6.05, GROUND - 1.72, 2.6, 2.05, false, 0);
+  addBush(6.15, GROUND - 1.72, 2.65, 2.05, true, 0);
 
   // Scene 3 animals
   type AnimalActor = {
@@ -173,10 +174,10 @@ export function createGardenScene(container: HTMLElement, opts: GardenOptions = 
       proc.shadow,
       ASPECT[spec.kind],
       spec.height,
-      spec.kind === "fawn" ? 1.35 : 1.05,
+      spec.kind === "fawn" ? 1.25 : 1.1,
     );
     if (spec.mirror) card.mesh.scale.x = -1;
-    card.holder.position.set(spec.startX, GROUND, spec.startZ);
+    card.holder.position.set(spec.startX, GROUND + spec.groundOffset, spec.startZ);
     card.holder.visible = false;
     scene.add(card.holder);
     const actor: AnimalActor = { card, spec, phase: idx * 1.37, tapHopAt: -10 };
@@ -371,11 +372,12 @@ export function createGardenScene(container: HTMLElement, opts: GardenOptions = 
     camera.updateProjectionMatrix();
     renderer.setSize(w, h, false);
     const tanHalf = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
-    baseZ = Math.max(9.8, 2.75 / (tanHalf * aspect));
+    baseZ = aspect < 0.85 ? Math.min(18.5, Math.max(12.2, 3.2 / (tanHalf * aspect))) : Math.max(9.8, 2.75 / (tanHalf * aspect));
+    bg.position.y = aspect < 0.85 ? -0.22 : -0.58;
     const dist = baseZ + 2.5 - BG_Z;
     const visH = 2 * dist * tanHalf;
     const visW = visH * aspect;
-    const H = Math.max(visH * 1.24, (visW * 1.2) / ASPECT.bg);
+    const H = Math.max(visH * 1.26, (visW * 1.22) / ASPECT.bg);
     bg.scale.set(H * ASPECT.bg, H, 1);
   };
   const ro = new ResizeObserver(resize);
@@ -500,14 +502,15 @@ export function createGardenScene(container: HTMLElement, opts: GardenOptions = 
     if (emptyBench.shadowMaterial) emptyBench.shadowMaterial.opacity = coupleState.emptyBenchOpacity;
 
     walkingCouple.holder.visible = coupleState.walkOpacity > 0.01;
-    walkingCouple.holder.position.set(0, GROUND + coupleState.walkYOffset, coupleState.walkZ);
+    walkingCouple.holder.position.set(coupleState.walkX, GROUND + coupleState.walkYOffset, coupleState.walkZ);
+    walkingCouple.mesh.scale.set(1, coupleState.walkScaleY, 1);
     walkingCouple.mesh.rotation.z = coupleState.walkSway;
     walkingCouple.material.opacity = coupleState.walkOpacity;
     if (walkingCouple.shadowMaterial) walkingCouple.shadowMaterial.opacity = coupleState.walkOpacity;
 
     seatedCouple.holder.visible = coupleState.seatedOpacity > 0.01;
     seatedCouple.holder.position.set(0, GROUND + coupleState.seatedYOffset, 0);
-    seatedCouple.mesh.scale.y = 1 + Math.sin(t * 1.6) * 0.005;
+    seatedCouple.mesh.scale.y = coupleState.seatedScaleY + Math.sin(t * 1.6) * 0.004;
     seatedCouple.material.opacity = coupleState.seatedOpacity;
     if (seatedCouple.shadowMaterial) seatedCouple.shadowMaterial.opacity = coupleState.seatedOpacity;
 
@@ -532,6 +535,7 @@ export function createGardenScene(container: HTMLElement, opts: GardenOptions = 
 
       const x = lerp(spec.startX, spec.endX, moveP);
       const z = lerp(spec.startZ, spec.endZ, moveP);
+      const baseY = GROUND + spec.groundOffset;
       const sign = spec.mirror ? -1 : 1;
 
       let yOffset = 0;
@@ -541,14 +545,14 @@ export function createGardenScene(container: HTMLElement, opts: GardenOptions = 
 
       if (rawP < 1) {
         if (spec.kind === "fawn") {
-          // Graceful trotting step bob for fawns
-          const step = rawP * Math.PI * 6;
-          yOffset = Math.abs(Math.sin(step)) * 0.11;
-          rotZ = Math.sin(step) * 0.028;
+          // Graceful grounded walk for fawns so hooves stay planted on the grass
+          const step = rawP * Math.PI * 5;
+          yOffset = Math.abs(Math.sin(step)) * 0.035;
+          rotZ = Math.sin(step) * 0.018;
         } else {
           // Lively parabolic hops for rabbits & squirrel
           const hopArc = Math.abs(Math.sin(rawP * spec.hops * Math.PI));
-          yOffset = hopArc * (spec.kind === "squirrel" ? 0.46 : 0.38);
+          yOffset = hopArc * (spec.kind === "squirrel" ? 0.38 : 0.32);
           const stretch = 0.92 + hopArc * 0.15;
           scaleY = stretch;
           scaleX = 2 - stretch;
@@ -578,7 +582,7 @@ export function createGardenScene(container: HTMLElement, opts: GardenOptions = 
         }
       }
 
-      a.card.holder.position.set(x, GROUND + yOffset, z);
+      a.card.holder.position.set(x, baseY + yOffset, z);
       a.card.mesh.scale.set(sign * scaleX, scaleY, 1);
       a.card.mesh.rotation.z = rotZ;
     }

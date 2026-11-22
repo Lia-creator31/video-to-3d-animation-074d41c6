@@ -72,13 +72,13 @@ export function GardenExperience() {
 
       <section
         aria-label="Kontrol adegan animasi 3D"
-        className={`absolute inset-x-0 bottom-0 flex justify-center p-3 sm:p-6 transition-all delay-300 duration-[1000ms] ${
+        className={`absolute inset-x-0 bottom-0 flex justify-center p-2 sm:p-4 transition-all delay-300 duration-[1000ms] ${
           ready ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
         }`}
       >
-        <div className="glass-panel flex w-full max-w-3xl flex-col gap-3 rounded-2xl px-4 py-3.5 sm:px-5 sm:py-4">
+        <div className="glass-panel flex w-full max-w-4xl flex-col gap-2 rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3">
           {/* Timeline scrubber */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <span className="w-9 font-sans text-xs tabular-nums text-muted-foreground">
               {formatTime(playback.time)}
             </span>
@@ -103,7 +103,7 @@ export function GardenExperience() {
           </div>
 
           {/* Playback actions + 5 scene jump pills */}
-          <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-1.5">
             <div className="flex items-center gap-1.5">
               <button
                 type="button"

@@ -31,21 +31,31 @@ describe("3D Garden Story Timeline", () => {
   it("transitions couple from walking forward in Scene 1 to seated on bench in Scene 2", () => {
     const startWalk = evaluateCoupleState(0.2);
     const endWalk = evaluateCoupleState(3.8);
-    const seated = evaluateCoupleState(5.8);
+    const midSit = evaluateCoupleState(4.9);
+    const seated = evaluateCoupleState(6.2);
 
     expect(startWalk.walkOpacity).toBe(1);
     expect(startWalk.seatedOpacity).toBe(0);
     expect(endWalk.walkZ).toBeGreaterThan(startWalk.walkZ);
+    // Mid-sit cross-dissolve keeps empty bench steady while smoothly transitioning
+    expect(midSit.walkOpacity).toBeGreaterThan(0);
+    expect(midSit.seatedOpacity).toBeGreaterThan(0);
+    expect(midSit.emptyBenchOpacity).toBeGreaterThan(0.8);
     expect(seated.walkOpacity).toBe(0);
     expect(seated.seatedOpacity).toBe(1);
     expect(seated.emptyBenchOpacity).toBe(0);
   });
 
-  it("brings woodland animals in starting at the end of Scene 2 through Scene 3", () => {
+  it("brings woodland animals in on the grounded foreground plane with fawns in front of bushes", () => {
     const earliest = Math.min(...ANIMAL_SPECS.map((a) => a.enterAt));
     const latest = Math.max(...ANIMAL_SPECS.map((a) => a.arriveAt));
     expect(earliest).toBeGreaterThanOrEqual(5.0);
     expect(latest).toBeLessThanOrEqual(STORY_SCENES[2]!.end);
+    // Every fawn stands in front of the bushes (endZ > 0) on the grass plane like the rabbits
+    for (const fawn of ANIMAL_SPECS.filter((a) => a.kind === "fawn")) {
+      expect(fawn.endZ).toBeGreaterThan(0);
+      expect(fawn.groundOffset).toBeLessThan(0);
+    }
   });
 
   it("keeps hero butterfly hidden early, enters in Scene 4, and approaches lens in Scene 5", () => {
