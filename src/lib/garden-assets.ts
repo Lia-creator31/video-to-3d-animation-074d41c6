@@ -1,40 +1,34 @@
 import * as THREE from "three";
 
 import bgUrl from "@/assets/garden-bg.webp";
-import coupleBenchUrl from "@/assets/couple-bench.webp";
+import coupleFacingUrl from "@/assets/couple-facing.webp";
 import coupleWalkingUrl from "@/assets/couple-walking.webp";
-import woodenBenchUrl from "@/assets/wooden-bench.webp";
 import butterflyRedUrl from "@/assets/butterfly-red.webp";
 import butterflyBlueUrl from "@/assets/butterfly-blue.webp";
 import rabbitUrl from "@/assets/rabbit.webp";
 import fawnUrl from "@/assets/fawn.webp";
 import squirrelUrl from "@/assets/squirrel.webp";
-import roseBushUrl from "@/assets/rose-bush.webp";
 
 export const ASSET_URLS = {
   bg: bgUrl,
-  coupleBench: coupleBenchUrl,
+  coupleFacing: coupleFacingUrl,
   coupleWalking: coupleWalkingUrl,
-  woodenBench: woodenBenchUrl,
   red: butterflyRedUrl,
   blue: butterflyBlueUrl,
   rabbit: rabbitUrl,
   fawn: fawnUrl,
   squirrel: squirrelUrl,
-  bush: roseBushUrl,
 } as const;
 
 export const ASPECT = {
   bg: 1920 / 1088,
-  coupleBench: 1083 / 910,
+  coupleFacing: 522 / 1002,
   coupleWalking: 782 / 1009,
-  woodenBench: 1023 / 705,
   red: 900 / 857,
   blue: 900 / 784,
   rabbit: 826 / 900,
   fawn: 553 / 900,
   squirrel: 786 / 900,
-  bush: 900 / 380,
 } as const;
 
 export function canvasTexture(size: number, draw: (ctx: CanvasRenderingContext2D, s: number) => void) {

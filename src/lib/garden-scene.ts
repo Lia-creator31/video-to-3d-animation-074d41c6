@@ -85,15 +85,13 @@ export function createGardenScene(container: HTMLElement, opts: GardenOptions = 
 
   const tex = {
     bg: load(ASSET_URLS.bg),
-    coupleBench: load(ASSET_URLS.coupleBench),
+    coupleFacing: load(ASSET_URLS.coupleFacing),
     coupleWalking: load(ASSET_URLS.coupleWalking),
-    woodenBench: load(ASSET_URLS.woodenBench),
     red: load(ASSET_URLS.red),
     blue: load(ASSET_URLS.blue),
     rabbit: load(ASSET_URLS.rabbit),
     fawn: load(ASSET_URLS.fawn),
     squirrel: load(ASSET_URLS.squirrel),
-    bush: load(ASSET_URLS.bush),
   };
   const proc = createProceduralTextures();
 
@@ -131,35 +129,14 @@ export function createGardenScene(container: HTMLElement, opts: GardenOptions = 
     scene.add(m);
   });
 
-  // Scene 1 -> 2 actors: empty wooden bench aligned pixel-for-pixel with couple-bench
-  const emptyBench = createCutoutCard(tex.woodenBench, proc.shadow, ASPECT.woodenBench, 2.22, 0.9);
-  emptyBench.mesh.scale.x = 1.21;
-  emptyBench.holder.position.set(0, GROUND + 0.14, -0.06);
-  scene.add(emptyBench.holder);
-
-  const walkingCouple = createCutoutCard(tex.coupleWalking, proc.shadow, ASPECT.coupleWalking, 3.54, 0.86);
-  walkingCouple.holder.position.set(0, GROUND, -2.9);
+  // Scene 1 -> 2 actors: couple walks 8 steps facing forward, then stops and faces each other
+  const walkingCouple = createCutoutCard(tex.coupleWalking, proc.shadow, ASPECT.coupleWalking, 3.54, 0.88);
+  walkingCouple.holder.position.set(0, GROUND, -3.1);
   scene.add(walkingCouple.holder);
 
-  const seatedCouple = createCutoutCard(tex.coupleBench, proc.shadow, ASPECT.coupleBench, 3.3, 0.92);
-  seatedCouple.holder.position.set(0, GROUND, 0);
-  scene.add(seatedCouple.holder);
-
-  // Grounded rose bushes firmly rooted into the garden lawn (no floating edges)
-  const bushes: { holder: THREE.Group; phase: number }[] = [];
-  const addBush = (x: number, y: number, z: number, h: number, mirror = false, shadow = 0.95) => {
-    const c = createCutoutCard(tex.bush, proc.shadow, ASPECT.bush, h, shadow);
-    c.holder.position.set(x, y, z);
-    if (mirror) c.mesh.scale.x = -1;
-    scene.add(c.holder);
-    bushes.push({ holder: c.holder, phase: Math.random() * 6 });
-  };
-  // Side garden bushes rooted deeply below the lawn line behind the fawns (zero floating bottom edges)
-  addBush(-5.55, GROUND - 1.08, -2.05, 2.05, false, 1.05);
-  addBush(5.65, GROUND - 1.08, -2.05, 2.05, true, 1.05);
-  // Outer foreground corner bushes anchored below the frame bottom edge
-  addBush(-6.05, GROUND - 1.72, 2.6, 2.05, false, 0);
-  addBush(6.15, GROUND - 1.72, 2.65, 2.05, true, 0);
+  const facingCouple = createCutoutCard(tex.coupleFacing, proc.shadow, ASPECT.coupleFacing, 3.52, 0.86);
+  facingCouple.holder.position.set(0, GROUND, 0);
+  scene.add(facingCouple.holder);
 
   // Scene 3 animals
   type AnimalActor = {
@@ -389,7 +366,7 @@ export function createGardenScene(container: HTMLElement, opts: GardenOptions = 
   const ndc = new THREE.Vector2();
   const pickables = () => [
     ...(walkingCouple.holder.visible ? [walkingCouple.mesh] : []),
-    ...(seatedCouple.holder.visible ? [seatedCouple.mesh] : []),
+    ...(facingCouple.holder.visible ? [facingCouple.mesh] : []),
     ...animals.filter((a) => a.card.holder.visible).map((a) => a.card.mesh),
     ...butterflies.filter((b) => b.group.visible).flatMap((b) => [b.left, b.right]),
   ];
@@ -438,7 +415,7 @@ export function createGardenScene(container: HTMLElement, opts: GardenOptions = 
     if (Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 8) return;
     const obj = pick(e.clientX, e.clientY);
     if (!obj) return;
-    if (obj === seatedCouple.mesh) burstHearts(0);
+    if (obj === facingCouple.mesh) burstHearts(0);
     if (obj === walkingCouple.mesh) burstHearts(walkingCouple.holder.position.z);
     const animal = obj.userData["animal"] as AnimalActor | undefined;
     if (animal && liveClock - animal.tapHopAt > 0.6) animal.tapHopAt = liveClock;
@@ -495,29 +472,24 @@ export function createGardenScene(container: HTMLElement, opts: GardenOptions = 
         (r.userData["base"] as number) * (0.72 + 0.28 * Math.sin(t * 0.65 + i * 1.7));
     });
 
-    // Scene 1 -> 2: Walking couple, empty wooden bench, and seated couple on bench
+    // Scene 1 -> 2: Walking 8 steps forward, then stopping and turning face-to-face
     const coupleState = evaluateCoupleState(st);
-    emptyBench.holder.visible = coupleState.emptyBenchOpacity > 0.01;
-    emptyBench.material.opacity = coupleState.emptyBenchOpacity;
-    if (emptyBench.shadowMaterial) emptyBench.shadowMaterial.opacity = coupleState.emptyBenchOpacity;
-
     walkingCouple.holder.visible = coupleState.walkOpacity > 0.01;
     walkingCouple.holder.position.set(coupleState.walkX, GROUND + coupleState.walkYOffset, coupleState.walkZ);
-    walkingCouple.mesh.scale.set(1, coupleState.walkScaleY, 1);
+    walkingCouple.mesh.scale.set(coupleState.walkScaleX, coupleState.walkScaleY, 1);
     walkingCouple.mesh.rotation.z = coupleState.walkSway;
     walkingCouple.material.opacity = coupleState.walkOpacity;
     if (walkingCouple.shadowMaterial) walkingCouple.shadowMaterial.opacity = coupleState.walkOpacity;
 
-    seatedCouple.holder.visible = coupleState.seatedOpacity > 0.01;
-    seatedCouple.holder.position.set(0, GROUND + coupleState.seatedYOffset, 0);
-    seatedCouple.mesh.scale.y = coupleState.seatedScaleY + Math.sin(t * 1.6) * 0.004;
-    seatedCouple.material.opacity = coupleState.seatedOpacity;
-    if (seatedCouple.shadowMaterial) seatedCouple.shadowMaterial.opacity = coupleState.seatedOpacity;
-
-    // Rose bushes sway gently in the breeze
-    for (const b of bushes) {
-      b.holder.rotation.z = Math.sin(t * 0.85 + b.phase) * 0.01;
-    }
+    facingCouple.holder.visible = coupleState.facingOpacity > 0.01;
+    facingCouple.holder.position.set(0, GROUND, 0);
+    facingCouple.mesh.scale.set(
+      coupleState.facingScaleX,
+      coupleState.facingScaleY + Math.sin(t * 1.6) * 0.004,
+      1,
+    );
+    facingCouple.material.opacity = coupleState.facingOpacity;
+    if (facingCouple.shadowMaterial) facingCouple.shadowMaterial.opacity = coupleState.facingOpacity;
 
     // Scene 2 tail & Scene 3: woodland animals hop/walk in and gather around the bench
     for (const a of animals) {

@@ -4,6 +4,8 @@ import {
   ANIMAL_SPECS,
   STORY_DURATION,
   STORY_SCENES,
+  WALK_END,
+  WALK_STEPS,
   evaluateCoupleState,
   evaluateHeroButterflyProgress,
   getSceneIndexAt,
@@ -21,37 +23,44 @@ describe("3D Garden Story Timeline", () => {
   });
 
   it("maps timestamps to the matching scene from walking through finale", () => {
-    expect(getSceneIndexAt(0.5)).toBe(0); // Berjalan
-    expect(getSceneIndexAt(4.8)).toBe(1); // Duduk di Bangku
+    expect(getSceneIndexAt(0.5)).toBe(0); // Berjalan 8 Langkah
+    expect(getSceneIndexAt(5.2)).toBe(1); // Berhadapan
     expect(getSceneIndexAt(8.5)).toBe(2); // Hewan Berdatangan
     expect(getSceneIndexAt(13.0)).toBe(3); // Kupu-Kupu Menari
     expect(getSceneIndexAt(16.8)).toBe(4); // Penutup
   });
 
-  it("transitions couple from walking forward in Scene 1 to seated on bench in Scene 2", () => {
-    const startWalk = evaluateCoupleState(0.2);
-    const endWalk = evaluateCoupleState(3.8);
-    const midSit = evaluateCoupleState(4.9);
-    const seated = evaluateCoupleState(6.2);
+  it("walks exactly 8 forward steps in Scene 1 then stops and faces each other in Scene 2", () => {
+    expect(WALK_STEPS).toBe(8);
+    const startWalk = evaluateCoupleState(0);
+    const midWalk = evaluateCoupleState(WALK_END / 2);
+    const endWalk = evaluateCoupleState(WALK_END);
+    const midTurn = evaluateCoupleState(5.28);
+    const facing = evaluateCoupleState(6.0);
 
+    expect(startWalk.stepCount).toBe(0);
+    expect(midWalk.stepCount).toBeCloseTo(4, 5);
+    expect(endWalk.stepCount).toBe(8);
     expect(startWalk.walkOpacity).toBe(1);
-    expect(startWalk.seatedOpacity).toBe(0);
-    expect(endWalk.walkZ).toBeGreaterThan(startWalk.walkZ);
-    // Mid-sit cross-dissolve keeps empty bench steady while smoothly transitioning
-    expect(midSit.walkOpacity).toBeGreaterThan(0);
-    expect(midSit.seatedOpacity).toBeGreaterThan(0);
-    expect(midSit.emptyBenchOpacity).toBeGreaterThan(0.8);
-    expect(seated.walkOpacity).toBe(0);
-    expect(seated.seatedOpacity).toBe(1);
-    expect(seated.emptyBenchOpacity).toBe(0);
+    expect(startWalk.facingOpacity).toBe(0);
+    expect(midWalk.walkZ).toBeGreaterThan(startWalk.walkZ);
+    expect(endWalk.walkZ).toBeGreaterThan(midWalk.walkZ);
+
+    // Smooth pivot transition right after step 8
+    expect(midTurn.walkOpacity).toBeGreaterThan(0);
+    expect(midTurn.facingOpacity).toBeGreaterThan(0);
+    // Fully standing face-to-face before animals arrive
+    expect(facing.walkOpacity).toBe(0);
+    expect(facing.facingOpacity).toBe(1);
   });
 
-  it("brings woodland animals in on the grounded foreground plane with fawns in front of bushes", () => {
+  it("brings fawns, rabbits, and squirrel in once the couple is standing face-to-face", () => {
     const earliest = Math.min(...ANIMAL_SPECS.map((a) => a.enterAt));
     const latest = Math.max(...ANIMAL_SPECS.map((a) => a.arriveAt));
-    expect(earliest).toBeGreaterThanOrEqual(5.0);
+    expect(earliest).toBeGreaterThanOrEqual(6.0);
     expect(latest).toBeLessThanOrEqual(STORY_SCENES[2]!.end);
-    // Every fawn stands in front of the bushes (endZ > 0) on the grass plane like the rabbits
+    const kinds = new Set(ANIMAL_SPECS.map((a) => a.kind));
+    expect(kinds).toEqual(new Set(["fawn", "rabbit", "squirrel"]));
     for (const fawn of ANIMAL_SPECS.filter((a) => a.kind === "fawn")) {
       expect(fawn.endZ).toBeGreaterThan(0);
       expect(fawn.groundOffset).toBeLessThan(0);

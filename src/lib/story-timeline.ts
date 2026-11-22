@@ -1,6 +1,6 @@
 export type StorySceneDef = {
   id: number;
-  key: "walk" | "sit" | "animals" | "butterflies" | "finale";
+  key: "walk" | "face" | "animals" | "butterflies" | "finale";
   label: string;
   caption: string;
   start: number;
@@ -8,29 +8,31 @@ export type StorySceneDef = {
 };
 
 export const STORY_DURATION = 18;
+export const WALK_STEPS = 8;
+export const WALK_END = 4.8;
 
 export const STORY_SCENES: readonly StorySceneDef[] = [
   {
     id: 0,
     key: "walk",
-    label: "1. Berjalan",
-    caption: "Pasangan berjalan bergandengan menyusuri jalan taman mawar",
+    label: "1. Berjalan 8 Langkah",
+    caption: "Pengantin berjalan 8 langkah menghadap ke depan menyusuri jalan taman mawar",
     start: 0,
-    end: 4.1,
+    end: WALK_END,
   },
   {
     id: 1,
-    key: "sit",
-    label: "2. Duduk di Bangku",
-    caption: "Tiba dan duduk berdampingan di bangku kayu di bawah lengkungan mawar",
-    start: 4.1,
+    key: "face",
+    label: "2. Berhadapan",
+    caption: "Keduanya berhenti setelah 8 langkah lalu saling berhadapan di tengah taman",
+    start: WALK_END,
     end: 6.8,
   },
   {
     id: 2,
     key: "animals",
     label: "3. Hewan Berdatangan",
-    caption: "Kelinci, anak rusa, dan tupai berdatangan mengelilingi pasangan",
+    caption: "Kijang, kelinci, dan tupai berdatangan mengelilingi pengantin yang saling berhadapan",
     start: 6.8,
     end: 11.4,
   },
@@ -85,57 +87,51 @@ export type CoupleTimelineState = {
   walkX: number;
   walkZ: number;
   walkYOffset: number;
+  walkScaleX: number;
   walkScaleY: number;
   walkSway: number;
-  emptyBenchOpacity: number;
-  seatedOpacity: number;
-  seatedYOffset: number;
-  seatedScaleY: number;
+  stepCount: number;
+  facingOpacity: number;
+  facingScaleX: number;
+  facingScaleY: number;
 };
 
 export function evaluateCoupleState(t: number): CoupleTimelineState {
-  // Scene 1 (0 - 4.1s): natural grounded stroll along the stone garden path
-  const walkP = smoothRange(t, 0, 4.05);
-  const walkZ = lerp(-2.9, 0.06, walkP);
-  // Natural deceleration before stopping in front of the wooden bench
-  const strideEnvelope = smoothRange(t, 0, 0.45) * (1 - smoothRange(t, 3.45, 4.15));
-  const stepPhase = t * Math.PI * 1.95;
-  // Grounded walking cadence: subtle downward weight dip & gentle side shift, never floating
-  const walkDip = -Math.pow(Math.sin(stepPhase), 2) * 0.022 * strideEnvelope;
-  const walkSway = Math.sin(stepPhase) * 0.011 * strideEnvelope;
+  // Scene 1 (0 - 4.8s): exactly 8 natural grounded footsteps facing forward along the stone path
+  const rawStepProgress = clamp01(t / WALK_END);
+  const stepCount = rawStepProgress * WALK_STEPS;
+  // Monotonic forward travel with subtle push-off cadence on each of the 8 steps
+  const strideImpulse = -Math.sin(stepCount * Math.PI * 2) * (0.014 / WALK_STEPS);
+  const walkProgress = clamp01(rawStepProgress + strideImpulse * smoothRange(t, 0, 0.35) * (1 - smoothRange(t, 4.45, WALK_END)));
+  const walkZ = lerp(-3.1, 0, walkProgress);
 
-  // Perspective ground slope along the stone path so shoes stay planted at every depth
-  const pathSlopeY = Math.max(0, -walkZ) * 0.032;
+  // Smooth fade-in on step 1 and natural halt right after step 8
+  const strideEnvelope = smoothRange(t, 0, 0.35) * (1 - smoothRange(t, 4.4, WALK_END));
+  const stepPhase = stepCount * Math.PI; // 8 half-cycles = 8 distinct alternating steps
+  // Grounded footfall: subtle weight dip + left-right transfer + gentle sway, never floating
+  const walkDip = -Math.pow(Math.sin(stepPhase), 2) * 0.024 * strideEnvelope;
+  const walkX = Math.sin(stepPhase) * 0.032 * strideEnvelope;
+  const walkSway = Math.sin(stepPhase) * 0.013 * strideEnvelope;
 
-  // Empty wooden bench gently appears behind them under the rose arch as they near it
-  const benchIn = smoothRange(t, 2.5, 3.85);
+  // Perspective ground slope along the stone path so shoes stay planted at every step
+  const pathSlopeY = Math.max(0, -walkZ) * 0.034;
 
-  // Scene 2 (4.1 - 6.1s): silky multi-phase sit-down transition
-  // Phase A (4.15 - 5.1s): knees gently bend so standing heads descend smoothly to exact seated head height (3.30)
-  const bendP = smoothRange(t, 4.15, 5.15);
-  // Phase B (4.6 - 5.25s): tight seamless cross-dissolve while heads & shoulders align pixel-for-pixel
-  const dissolveP = smoothRange(t, 4.6, 5.25);
-  // Phase C (5.15 - 5.95s): subtle cushioned settle onto the wooden seat
-  const settleWave = Math.sin(smoothRange(t, 5.15, 5.95) * Math.PI) * 0.022;
-  // Gently align horizontal center with couple-bench as they settle onto the wooden seat
-  const walkX = Math.sin(stepPhase) * 0.024 * strideEnvelope + bendP * 0.12;
-
-  const walkOpacity = 1 - dissolveP;
-  const seatedOpacity = dissolveP;
-  // Keep empty bench rock-solid underneath until seated couple reaches full opacity
-  const emptyBenchOpacity = benchIn * (1 - smoothRange(t, 4.95, 5.4));
+  // Scene 2 (4.8 - 6.8s): stop cleanly after step 8, then gently pivot inward to face each other
+  const turnP = smoothRange(t, 4.88, 5.68);
+  const settleWave = Math.sin(smoothRange(t, 5.55, 6.25) * Math.PI) * 0.008;
 
   return {
-    walkOpacity,
+    walkOpacity: 1 - turnP,
     walkX,
     walkZ,
-    walkYOffset: pathSlopeY + walkDip - bendP * 0.13,
-    walkScaleY: 1 - bendP * 0.032,
+    walkYOffset: pathSlopeY + walkDip,
+    walkScaleX: 1 - turnP * 0.14,
+    walkScaleY: 1,
     walkSway,
-    emptyBenchOpacity,
-    seatedOpacity,
-    seatedYOffset: (1 - dissolveP) * 0.025 - settleWave,
-    seatedScaleY: 1 - settleWave * 0.2,
+    stepCount,
+    facingOpacity: turnP,
+    facingScaleX: 0.9 + turnP * 0.1,
+    facingScaleY: 1 - settleWave,
   };
 }
 
@@ -147,9 +143,9 @@ export type CameraTimelineState = {
 };
 
 export function evaluateCameraState(t: number, reducedMotion: boolean): CameraTimelineState {
-  // Scene 1: starts warm and grounded with the walking couple, glides back to frame arch & bench
-  const pWalk = smoothRange(t, 0, 4.1);
-  // Scene 2 -> 3: gently pulls wider to reveal all arriving woodland animals
+  // Scene 1: starts warm and grounded with the walking couple, glides back to frame the rose arch
+  const pWalk = smoothRange(t, 0, WALK_END);
+  // Scene 2 -> 3: gently pulls wider while they face each other to reveal all arriving animals
   const pWide = smoothRange(t, 6.6, 11.2);
   // Scene 4 -> 5: subtly leans in and tilts slightly upward toward swirling butterflies & finale
   const pFly = smoothRange(t, 11.6, 16.4);
@@ -177,16 +173,16 @@ export type AnimalEntranceSpec = {
 };
 
 export const ANIMAL_SPECS: readonly AnimalEntranceSpec[] = [
-  // Fawns planted squarely on the open grass/path floor at the same grounded level as the rabbits
-  { kind: "fawn", startX: -7.4, endX: -2.85, startZ: 0.95, endZ: 0.85, groundOffset: -0.34, height: 1.82, mirror: false, enterAt: 5.9, arriveAt: 8.7, hops: 0 },
-  { kind: "rabbit", startX: 7.0, endX: 2.02, startZ: 1.3, endZ: 1.18, groundOffset: -0.26, height: 0.82, mirror: true, enterAt: 6.1, arriveAt: 8.3, hops: 5 },
-  // Main gathering wave in Scene 3 — cleanly spaced on the lawn & stone path, zero overlap
-  { kind: "rabbit", startX: -7.0, endX: -1.85, startZ: 1.3, endZ: 1.18, groundOffset: -0.26, height: 0.84, mirror: false, enterAt: 6.7, arriveAt: 8.9, hops: 5 },
-  { kind: "fawn", startX: 7.6, endX: 2.95, startZ: 0.92, endZ: 0.82, groundOffset: -0.34, height: 1.72, mirror: true, enterAt: 7.1, arriveAt: 9.9, hops: 0 },
-  { kind: "squirrel", startX: 7.5, endX: 3.92, startZ: 1.32, endZ: 1.22, groundOffset: -0.32, height: 0.84, mirror: true, enterAt: 7.5, arriveAt: 9.8, hops: 6 },
-  { kind: "rabbit", startX: -7.1, endX: -3.85, startZ: 1.35, endZ: 1.25, groundOffset: -0.32, height: 0.8, mirror: false, enterAt: 7.8, arriveAt: 10.0, hops: 4 },
-  { kind: "rabbit", startX: 6.8, endX: 0.96, startZ: 1.45, endZ: 1.3, groundOffset: -0.22, height: 0.72, mirror: true, enterAt: 8.2, arriveAt: 10.4, hops: 5 },
-  { kind: "rabbit", startX: -6.6, endX: -0.85, startZ: 1.48, endZ: 1.32, groundOffset: -0.22, height: 0.72, mirror: false, enterAt: 8.6, arriveAt: 10.8, hops: 5 },
+  // Animals enter once the couple has stopped and turned to face each other (t >= 6.4s)
+  // Fawns planted squarely on the sunlit background lawn with all four hooves visible
+  { kind: "fawn", startX: -7.4, endX: -2.75, startZ: 0.95, endZ: 0.85, groundOffset: -0.3, height: 1.82, mirror: false, enterAt: 6.4, arriveAt: 9.0, hops: 0 },
+  { kind: "rabbit", startX: 7.0, endX: 1.92, startZ: 1.3, endZ: 1.18, groundOffset: -0.26, height: 0.82, mirror: true, enterAt: 6.6, arriveAt: 8.8, hops: 5 },
+  { kind: "rabbit", startX: -7.0, endX: -1.82, startZ: 1.3, endZ: 1.18, groundOffset: -0.26, height: 0.84, mirror: false, enterAt: 7.0, arriveAt: 9.2, hops: 5 },
+  { kind: "fawn", startX: 7.6, endX: 2.85, startZ: 0.92, endZ: 0.82, groundOffset: -0.3, height: 1.74, mirror: true, enterAt: 7.3, arriveAt: 10.0, hops: 0 },
+  { kind: "squirrel", startX: 7.5, endX: 3.85, startZ: 1.32, endZ: 1.22, groundOffset: -0.3, height: 0.84, mirror: true, enterAt: 7.7, arriveAt: 10.0, hops: 6 },
+  { kind: "rabbit", startX: -7.1, endX: -3.78, startZ: 1.35, endZ: 1.25, groundOffset: -0.3, height: 0.8, mirror: false, enterAt: 8.0, arriveAt: 10.2, hops: 4 },
+  { kind: "rabbit", startX: 6.8, endX: 0.96, startZ: 1.45, endZ: 1.3, groundOffset: -0.22, height: 0.72, mirror: true, enterAt: 8.4, arriveAt: 10.6, hops: 5 },
+  { kind: "rabbit", startX: -6.6, endX: -0.88, startZ: 1.48, endZ: 1.32, groundOffset: -0.22, height: 0.72, mirror: false, enterAt: 8.8, arriveAt: 11.0, hops: 5 },
 ] as const;
 
 export function evaluateHeroButterflyProgress(t: number): {
