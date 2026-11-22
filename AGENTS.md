@@ -28,3 +28,7 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Architecture
+
+- Keep 3D scene choreography deterministic in pure `src/lib/story-timeline.ts` and bind Three.js rendering to it in `src/lib/garden-scene.ts` so timeline scrubbing, scene jumps, and unit tests stay decoupled from WebGL.

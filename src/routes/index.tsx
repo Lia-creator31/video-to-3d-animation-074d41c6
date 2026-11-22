@@ -1,23 +1,28 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-// The home route ships no og:image, so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
+import { GardenExperience } from "@/components/GardenExperience";
+
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Di Bawah Lengkungan Mawar — Animasi 3D Taman" },
+      {
+        name: "description",
+        content:
+          "Animasi 3D lengkap dari adegan pertama hingga terakhir: pasangan berjalan di taman mawar, duduk di bangku kayu, dikelilingi hewan taman, hingga tarian kupu-kupu.",
+      },
+      { property: "og:title", content: "Di Bawah Lengkungan Mawar — Animasi 3D Taman" },
+      {
+        property: "og:description",
+        content: "Saksikan kisah animasi 3D di bawah lengkungan mawar dari adegan pertama hingga penutup.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
+  return <GardenExperience />;
 }
